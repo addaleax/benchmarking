@@ -24,6 +24,7 @@ echo "This script has two use cases:"
 echo "Use case 1: We want to test the impact of a PR on a branch."
 echo "To run this, declare:"
 echo "The script expects the following variables to be set:"
+echo "GITHUB_ORG = The user/org of the GitHub repo"
 echo "CATEGORY = a category of tests to run - folders in benchmark/"
 echo "BRANCH = the branch the test should be based off. e.g. master"
 echo "PULL_ID = the pull request that contains changes to test"
@@ -31,7 +32,11 @@ echo "-------------------------------------------------------------"
 echo "Use case 2: We want to compare two branches, tags or commits."
 echo "To run this, declare:"
 echo "CATEGORY = a category of tests to run - folders in benchmark/"
+echo "GITHUB_ORG_BASE = The user/org of the GitHub repo (base for comparison)"
+echo "REPO_NAME_BASE = The name of the repo (base for comparison)"
 echo "BASE = the branch/tag/commit the test should be based off. e.g. master"
+echo "GITHUB_ORG_TARGET = The user/org of the GitHub repo (target for comparison)"
+echo "REPO_NAME_TARGET = The name of the repo (target for comparison)"
 echo "TARGET = the branch/tag/commit to compare against base"
 echo "-------------------------------------------------------------"
 echo "The following are optional across both use cases"
@@ -52,13 +57,17 @@ else
 	mandatory PULL_ID
 fi
 mandatory CATEGORY
-optional RUNS 
+optional GITHUB_ORG_BASE nodejs
+optional REPO_NAME_BASE node
+optional GITHUB_ORG_TARGET nodejs
+optional REPO_NAME_TARGET node
+optional RUNS
 optional FILTER
 getMACHINE_THREADS=`cat /proc/cpuinfo |grep processor|tail -n1|awk {'print $3'}`
 let getMACHINE_THREADS=getMACHINE_THREADS+1 #getting threads this way is 0 based. Add one
 optional MACHINE_THREADS $getMACHINE_THREADS
 rm -rf node
-git clone http://github.com/nodejs/node.git
+git clone --depth=10 https://github.com/$GITHUB_ORG_BASE/$REPO_NAME_BASE.git/ node
 cd node
 case $USE_CASE in
 1)
@@ -80,7 +89,9 @@ case $USE_CASE in
         curl https://patch-diff.githubusercontent.com/raw/nodejs/node/pull/${PULL_ID}.patch|git apply
 	;;
 2)
-	git checkout $TARGET
+	git remote add target https://github.com/$GITHUB_ORG_TARGET/$REPO_NAME_TARGET.git/
+	git fetch --depth=10 target
+	git checkout target/$TARGET || git checkout $TARGET
 	;;
 esac
 ./configure
